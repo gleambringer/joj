@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>erratic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap');
+        
+        body {
+            background-color: #050505;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(233, 69, 96, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(15, 52, 96, 0.2) 0px, transparent 50%);
+            min-height: 100vh;
+            color: #ffffff;
+            font-family: 'Space Grotesk', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .glow-button {
+            background: #e94560;
+            box-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glow-button:hover {
+            box-shadow: 0 0 35px rgba(233, 69, 96, 0.5);
+            transform: translateY(-2px);
+            background: #ff4d6d;
+        }
+
+        .input-focus:focus {
+            border-color: #e94560;
+            box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .mono-font {
+            font-family: 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', monospace;
+        }
+
+        /* Animated background pulse */
+        @keyframes pulse-bg {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.8; }
+        }
+        .bg-glow {
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            animation: pulse-bg 10s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+    <div class="bg-glow"></div>
+    
+    <div class="glass w-full max-w-xl p-10 md:p-14 transition-all duration-500 hover:border-white/10">
+        <header class="mb-12">
+            <h1 class="text-5xl font-bold tracking-tighter italic text-[#e94560] mb-2 select-none">erratic</h1>
+            <div class="h-1 w-12 bg-white/20 mb-4 rounded-full"></div>
+            <p class="text-white/40 text-xs uppercase tracking-[0.3em] font-medium">Link Proxy Infrastructure</p>
+        </header>
+
+        <div class="space-y-6">
+            <div class="relative group">
+                <label class="text-[10px] font-bold uppercase text-white/30 ml-4 mb-2 block tracking-widest">Source Destination</label>
+                <input type="text" id="targetInput" placeholder="https://api.example.com/v1" 
+                    class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white placeholder:text-white/10 outline-none transition-all input-focus">
+            </div>
+            
+            <button onclick="generateLink()" 
+                class="w-full glow-button text-white font-bold py-4 rounded-2xl active:scale-95 text-sm uppercase tracking-widest">
+                Authorize Proxy Link
+            </button>
+        </div>
+
+        <div id="resultArea" class="mt-10 pt-10 border-t border-white/5 hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <label class="text-[10px] font-bold uppercase text-white/30 ml-4 mb-2 block tracking-widest">Generated Proxy Endpoint</label>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <input type="text" id="resultUrl" readonly 
+                    class="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-[#00ffaa] text-xs mono-font outline-none">
+                <button onclick="copyToClipboard()" 
+                    class="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors active:bg-white/20">
+                    Copy
+                </button>
+            </div>
+            <p class="mt-4 text-[10px] text-white/20 text-center italic">
+                Append your API paths or parameters to the end of this URL.
+            </p>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-white text-black text-[10px] font-bold uppercase tracking-[0.2em] px-8 py-3 rounded-full opacity-0 transition-all duration-300 transform translate-y-4 pointer-events-none shadow-2xl">
+        Copied to clipboard
+    </div>
+
+    <script>
+        function generateLink() {
+            const input = document.getElementById('targetInput').value.trim();
+            if (!input) return;
+            
+            // Handle missing protocol
+            let formattedInput = input;
+            if (!/^https?:\/\//i.test(input)) {
+                formattedInput = 'https://' + input;
+            }
+            
+            // Build the absolute proxy URL
+            const baseUrl = window.location.origin;
+            const finalUrl = `${baseUrl}/proxy?url=${encodeURIComponent(formattedInput)}`;
+            
+            const resultArea = document.getElementById('resultArea');
+            document.getElementById('resultUrl').value = finalUrl;
+            
+            resultArea.classList.remove('hidden');
+            resultArea.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+
+        function copyToClipboard() {
+            const copyText = document.getElementById('resultUrl');
+            copyText.select();
+            
+            try {
+                // Use execCommand for broader compatibility in iframes/webviews
+                document.execCommand("copy");
+                
+                const toast = document.getElementById('toast');
+                toast.classList.remove('opacity-0', 'translate-y-4');
+                toast.classList.add('opacity-100', 'translate-y-0');
+                
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'translate-y-4');
+                    toast.classList.remove('opacity-100', 'translate-y-0');
+                }, 2500);
+            } catch (err) {
+                console.error('Copy failed', err);
+            }
+        }
+
+        // Allow 'Enter' key to trigger generation
+        document.getElementById('targetInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') generateLink();
+        });
+    </script>
+</body>
+</html>
